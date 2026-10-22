@@ -8,6 +8,7 @@ const EventEmitter = require('events');
 const Task = require('./models/Task');
 const Contact = require('./models/Contact');
 const User = require('./models/User');
+const aiService = require('./services/aiService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -117,6 +118,33 @@ app.get('/me', authMiddleware, async (req, res, next) => {
 // Event registry endpoint for verification
 app.get('/task-events', (req, res) => {
   res.json(eventRegistry);
+});
+
+// Practical 13: AI Assistant Endpoint (Gemini / Fallback Engine)
+app.post('/tasks/ai-suggest', async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ error: 'Task title is required for AI suggestions' });
+    }
+    const suggestion = await aiService.suggestTaskDetails(title);
+    res.json(suggestion);
+  } catch (err) {
+    res.status(500).json({ error: 'AI processing failed', details: err.message });
+  }
+});
+
+app.post('/ai/suggest', async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ error: 'Task title is required for AI suggestions' });
+    }
+    const suggestion = await aiService.suggestTaskDetails(title);
+    res.json(suggestion);
+  } catch (err) {
+    res.status(500).json({ error: 'AI processing failed', details: err.message });
+  }
 });
 
 // Validation Middleware
