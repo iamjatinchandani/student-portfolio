@@ -1,47 +1,19 @@
-import { Link } from "react-router-dom";
+function Header({ name = "Jatin Chandani" }) {
+  const parts = name.trim().split(" ");
+  const firstName = parts[0] || "Jatin";
+  const lastName = parts.slice(1).join(" ") || "Chandani";
 
-function Header({ name }) {
-
-    return (
-
-        <header>
-
-            <div className="avatar">
-                👨‍💻
-            </div>
-
-            <h1>{name}</h1>
-
-            <p>
-                Computer Engineering Student
-            </p>
-
-            <p>
-                Aspiring Full Stack Developer focused on building
-                scalable web applications with modern technologies
-                and solving real-world problems through software.
-            </p>
-
-            <div className="hero-buttons">
-
-                <Link to="/projects">
-                    <button>
-                        View Projects
-                    </button>
-                </Link>
-
-                <Link to="/contact">
-                    <button>
-                        Contact Me
-                    </button>
-                </Link>
-
-            </div>
-
-        </header>
-
-    );
-
+  return (
+    <header className="hero-card">
+      <h1 className="hero-name">
+        <span className="name-line">{firstName}</span>
+        <span className="name-line">{lastName}</span>
+      </h1>
+      <p className="hero-tagline">
+        Full Stack Developer &amp; UI/UX Enthusiast
+      </p>
+    </header>
+  );
 }
 
 export default Header;

@@ -1,188 +1,124 @@
 import { useState, useEffect } from "react";
-
 import Spinner from "../components/Spinner";
 import ErrorMessage from "../components/ErrorMessage";
+import Toast from "../components/Toast";
+import { getTasks, createTask, updateTask, deleteTask } from "../api";
 
 function Projects() {
-
-  const [repos, setRepos] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Toast state
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastType, setToastType] = useState("success");
+
+  // Form state
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("low");
+
+  const showToast = (msg, type = "success") => {
+      setToastMsg(msg);
+      setToastType(type);
+      setTimeout(() => setToastMsg(""), 3000);
+  };
 
   useEffect(() => {
-
-    fetch("https://api.github.com/users/iamjatinchandani/repos")
-
-      .then((res) => {
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch repositories");
-        }
-
-        return res.json();
-
-      })
-
-      .then((data) => {
-
-        setRepos(data);
-
-      })
-
-      .catch((err) => {
-
-        setError(err.message);
-
-      })
-
-      .finally(() => {
-
-        setLoading(false);
-
-      });
-
+    getTasks()
+      .then((data) => setTasks(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const projects = [
-
-    {
-      title: "Talent Intelligence Platform",
-      status: "In Progress",
-      description:
-        "An AI-powered placement platform that analyzes resumes, recommends career paths, identifies skill gaps and helps recruiters discover talent.",
-      technologies: [
-        "React",
-        "Node.js",
-        "PostgreSQL",
-        "Prisma",
-        "Gemini AI"
-      ]
-    },
-
-    {
-      title: "TransitOps",
-      status: "Hackathon Project",
-      description:
-        "A smart transport management platform with multiple dashboards, fleet monitoring and analytics developed during a hackathon.",
-      technologies: [
-        "React",
-        "Tailwind",
-        "PostgreSQL"
-      ]
-    },
-
-    {
-      title: "Student Portfolio",
-      status: "Completed",
-      description:
-        "A modern responsive portfolio website developed using React Router, reusable components and clean UI principles.",
-      technologies: [
-        "React",
-        "React Router",
-        "CSS"
-      ]
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    const newTask = { title, description, priority, completed: false };
+    
+    // Optimistic UI update
+    const tempId = Date.now().toString();
+    setTasks([...tasks, { ...newTask, _id: tempId }]);
+    setTitle("");
+    setDescription("");
+    
+    try {
+        const createdTask = await createTask(newTask);
+        setTasks(prev => prev.map(t => t._id === tempId ? createdTask : t));
+        showToast("Task created successfully!");
+    } catch (err) {
+        setTasks(prev => prev.filter(t => t._id !== tempId));
+        showToast(err.message, "error");
     }
+  };
 
-  ];
+  const handleToggleComplete = async (task) => {
+    try {
+        const updated = await updateTask(task._id, { completed: !task.completed });
+        setTasks(tasks.map(t => t._id === task._id ? updated : t));
+        showToast("Task updated successfully!");
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+        try {
+            await deleteTask(id);
+            setTasks(tasks.filter(t => t._id !== id));
+            showToast("Task deleted successfully!");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    }
+  };
 
   if (loading) return <Spinner />;
-
   if (error) return <ErrorMessage message={error} />;
 
   return (
-
     <div className="container">
+      <h1 className="page-title">Task Management</h1>
 
-      <h1 className="page-title">
-        Featured Projects
-      </h1>
+      <div style={{ backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
+          <h3>Add New Task</h3>
+          <form onSubmit={handleCreateTask} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <input type="text" placeholder="Task Title" value={title} onChange={e => setTitle(e.target.value)} required style={{ padding: '8px' }} />
+              <input type="text" placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} style={{ padding: '8px' }} />
+              <select value={priority} onChange={e => setPriority(e.target.value)} style={{ padding: '8px' }}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+              </select>
+              <button type="submit" style={{ padding: '10px', backgroundColor: '#333', color: '#fff', border: 'none', cursor: 'pointer' }}>Create Task</button>
+          </form>
+      </div>
 
       <div className="projects-grid">
-
-        {projects.map((project, index) => (
-
-          <div className="project-card" key={index}>
-
-            <span className="status">
-
-              {project.status}
-
+        {tasks.map((task) => (
+          <div className="project-card" key={task._id}>
+            <span className="status" style={{ backgroundColor: task.completed ? '#4CAF50' : '#ff9800' }}>
+              {task.completed ? 'Completed' : 'Pending'}
             </span>
-
-            <h2>{project.title}</h2>
-
-            <p>{project.description}</p>
-
-            <div className="tech-stack">
-
-              {project.technologies.map((tech, i) => (
-
-                <span className="tech-badge" key={i}>
-
-                  {tech}
-
-                </span>
-
-              ))}
-
+            <h2>{task.title}</h2>
+            <p>{task.description || "No description"}</p>
+            <p>Priority: <strong>{task.priority}</strong></p>
+            
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button onClick={() => handleToggleComplete(task)} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+                    Mark {task.completed ? 'Pending' : 'Complete'}
+                </button>
+                <button onClick={() => handleDelete(task._id)} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#f44336', color: 'white', border: 'none' }}>
+                    Delete
+                </button>
             </div>
-
           </div>
-
         ))}
-
       </div>
 
-      <br />
-      <br />
-
-      <h1 className="page-title">
-        GitHub Repositories
-      </h1>
-
-      <div className="projects-grid">
-
-        {repos.map((repo) => (
-
-          <div className="project-card" key={repo.id}>
-
-            <span className="status">
-              Repository
-            </span>
-
-            <h2>{repo.name}</h2>
-
-            <p>
-
-              {repo.description || "No description available"}
-
-            </p>
-
-            <p className="repo-stars">
-
-              ⭐ {repo.stargazers_count} Stars
-
-            </p>
-
-            <a
-              className="repo-link"
-              href={repo.html_url}
-              target="_blank"
-              rel="noreferrer"
-              >
-               View Repository
-             </a>
-
-          </div>
-
-        ))}
-
-      </div>
-
+      <Toast message={toastMsg} type={toastType} />
     </div>
-
   );
-
 }
 
 export default Projects;
