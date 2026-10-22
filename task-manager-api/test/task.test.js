@@ -101,3 +101,6 @@ describe('Task Management Application - Automated Test Suite', () => {
   });
 
 });
+
+process.env.FAIL_TEST = 'true';
+
